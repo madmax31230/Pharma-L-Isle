@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pharmacie VSAV Pro</title>
     
+    <!-- Bibliothèques externes -->
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root { 
@@ -20,15 +22,7 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 10px; transition: 0.3s; }
         .container { max-width: 1200px; margin: auto; }
         
-        /* Style pour le logo en haut à droite */
-        .logo-circle {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--blue);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
+        .logo-circle { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--blue); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .btn-theme { background: var(--card-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 1.1em; transition: 0.3s; }
@@ -36,7 +30,6 @@
         .btn-logout { background: var(--danger); display: none; }
         .btn-admin-panel { background: #8e44ad; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; display: none; }
         .network-badge { background: var(--success); color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.85em; font-weight: bold; }
-        .network-offline { background: var(--warning); }
 
         .recap-panel { background: var(--card-bg); border-left: 5px solid var(--blue); padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: sticky; top: 10px; z-index: 100; transition: 0.3s; }
         .recap-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap; gap: 10px; }
@@ -53,7 +46,6 @@
         .main-card { background: var(--card-bg); padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: 0.3s; }
         h1 { font-size: 1.5em; margin-top: 0; text-align: center; }
         
-        /* Barre de recherche + Bouton scan */
         .search-container { display: flex; gap: 10px; margin-bottom: 15px; width: 100%; }
         .search-bar { flex-grow: 1; padding: 12px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); font-size: 16px; box-sizing: border-box; }
         .btn-scan { background: var(--dark); color: white; border: none; padding: 0 20px; border-radius: 5px; cursor: pointer; font-size: 1.5em; display: flex; align-items: center; justify-content: center; }
@@ -86,7 +78,6 @@
         .admin-list li { padding: 8px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; }
         .admin-list button { color: var(--danger); background: none; border: none; cursor: pointer; font-weight: bold; }
         
-        /* Zone vidéo du scanner */
         #reader { width: 100%; max-width: 400px; margin: 15px auto; }
     </style>
 </head>
@@ -95,6 +86,7 @@
 <div class="container">
     <div class="top-bar">
         <button class="btn-theme" id="btnTheme" onclick="toggleTheme()" title="Mode Sombre/Clair">🌙</button>
+        <button class="btn-admin-panel" id="btnDashboard" onclick="ouvrirDashboard()" style="background: #27ae60; display: none;">📊 Stats</button>
         <button class="btn-admin-panel" id="btnAdminPanel" onclick="ouvrirModalAdmin()">⚙️ Panneau Admin</button>
         <span id="networkStatus" class="network-badge">📶 Connecté</span>
         
@@ -123,7 +115,7 @@
         <h1>🚑 Inventaire VSAV</h1>
         
         <div class="search-container">
-            <input type="text" id="searchInput" class="search-bar" onkeyup="filterTable()" placeholder="🔍 Rechercher (nom ou scannez le code)...">
+            <input type="text" id="searchInput" class="search-bar" onkeyup="filterTable()" placeholder="🔍 Rechercher (nom ou scannez le code)..." autocomplete="off">
             <button class="btn-scan" onclick="startScanner()" title="Scanner un code-barres">📷</button>
         </div>
 
@@ -144,10 +136,11 @@
     </div>
 </div>
 
+<!-- Modal Connexion -->
 <div class="modal" id="loginModal">
     <div class="modal-content">
         <h3 style="margin-top:0; border-bottom:2px solid var(--border-color); padding-bottom:10px;">🔒 Accès Administrateur</h3>
-        <input type="text" id="adminUser" placeholder="Identifiant">
+        <input type="email" id="adminUser" placeholder="Email professionnel (@sdis31.fr)">
         <input type="password" id="adminPass" placeholder="Mot de passe">
         <button class="btn-action" onclick="login()">Se Connecter</button>
         <button class="btn-action btn-close" onclick="document.getElementById('loginModal').style.display='none'">Annuler</button>
@@ -155,6 +148,7 @@
     </div>
 </div>
 
+<!-- Modal Admin -->
 <div class="modal" id="adminModal">
     <div class="modal-content" style="max-width: 500px;">
         <h3 style="margin-top:0; border-bottom:2px solid var(--border-color); padding-bottom:10px;">⚙️ Panneau d'Administration</h3>
@@ -164,13 +158,27 @@
         </div>
         <strong>👥 Gestion des Administrateurs</strong>
         <ul class="admin-list" id="adminListUi"></ul>
-        <div style="display:flex; gap:10px; margin-top:10px;">
-            <input type="text" id="newAdminUser" placeholder="ID" style="flex:1; margin:0;">
-            <input type="text" id="newAdminPass" placeholder="MDP" style="flex:1; margin:0;">
+        <div style="display:flex; gap:10px; margin-top:10px; flex-wrap: wrap;">
             <input type="text" id="newAdminNom" placeholder="Nom" style="flex:1; margin:0;">
+            <input type="email" id="newAdminEmail" placeholder="Email (@sdis31.fr)" style="flex:2; margin:0;">
+            <input type="text" id="newAdminPass" placeholder="MDP" style="flex:1; margin:0;">
         </div>
         <button class="btn-action" style="background: var(--success);" onclick="addAdmin()">➕ Ajouter Admin</button>
         <button class="btn-action btn-close" style="margin-top: 20px;" onclick="document.getElementById('adminModal').style.display='none'">Fermer</button>
+    </div>
+</div>
+
+<!-- Modal Dashboard -->
+<div class="modal" id="dashboardModal">
+    <div class="modal-content" style="max-width: 600px; width: 95%;">
+        <h3 style="margin-top:0; border-bottom:2px solid var(--border-color); padding-bottom:10px;">📊 Statistiques des Commandes</h3>
+        <div style="background: var(--bg-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+            <p style="margin: 0; font-size: 1.1em; color: var(--info);">Total des articles commandés : <strong id="totalCommandesStat" style="color: var(--blue); font-size: 1.2em;">0</strong></p>
+        </div>
+        <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="topProduitsChart"></canvas>
+        </div>
+        <button class="btn-action btn-close" style="margin-top: 20px;" onclick="document.getElementById('dashboardModal').style.display='none'">Fermer</button>
     </div>
 </div>
 
@@ -189,83 +197,58 @@
     let ongletsDisponibles = ["Tous"];
     let ongletActif = "Tous";
     let estAdmin = false;
-
-    // === GESTION DU SCANNER ===
+    
+    let historiqueCommandes = [];
+    let monGraphique = null;
     let html5QrcodeScanner = null;
 
     function startScanner() {
         document.getElementById('scannerModal').style.display = 'flex';
-        
         if (!html5QrcodeScanner) {
-            html5QrcodeScanner = new Html5QrcodeScanner(
-                "reader", { fps: 10, qrbox: {width: 250, height: 150} }, /* verbose= */ false);
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 150} }, false);
             html5QrcodeScanner.render(onScanSuccess, onScanFailure);
         }
     }
-
     function onScanSuccess(decodedText, decodedResult) {
         stopScanner();
         document.getElementById('searchInput').value = decodedText;
         filterTable();
     }
-
-    function onScanFailure(error) {
-        // On ignore les erreurs de scan continu
-    }
-
+    function onScanFailure(error) {}
     function stopScanner() {
         document.getElementById('scannerModal').style.display = 'none';
-        if (html5QrcodeScanner) {
-            html5QrcodeScanner.clear().catch(error => { console.error("Erreur d'arrêt scanner", error); });
-            html5QrcodeScanner = null;
-        }
+        if (html5QrcodeScanner) { html5QrcodeScanner.clear(); html5QrcodeScanner = null; }
     }
 
-    // === GESTION DU THEME SOMBRE ===
     function toggleTheme() {
         document.body.classList.toggle('dark-theme');
         const isDark = document.body.classList.contains('dark-theme');
         localStorage.setItem('darkMode', isDark);
         document.getElementById('btnTheme').innerText = isDark ? "☀️" : "🌙";
     }
-    
     if(localStorage.getItem('darkMode') === 'true') {
         document.body.classList.add('dark-theme');
         document.getElementById('btnTheme').innerText = "☀️";
     }
 
-    // === GESTION DU RESEAU ===
-    function setNetworkUI(isOnline) {
-        const badge = document.getElementById('networkStatus');
-        if(isOnline) {
-            badge.className = "network-badge";
-            badge.innerText = "📶 En Ligne";
-        } else {
-            badge.className = "network-badge network-offline";
-            badge.innerText = "📵 Mode Mémoire";
-        }
-    }
-
-    window.addEventListener('online', () => {
-        setNetworkUI(true);
-        const list = JSON.parse(localStorage.getItem('recapList')) || [];
-        if (list.length > 0) envoyerCommandesSheets(); 
-        else fetchInventoryFromSheets();
-    });
-    window.addEventListener('offline', () => setNetworkUI(false));
-
-    // === LECTURE DES DONNEES ===
     async function fetchInventoryFromSheets() {
         try {
-            const response = await fetch(WEB_APP_URL);
+            const response = await fetch(WEB_APP_URL + "?action=get_inventory");
+            if (!response.ok) throw new Error("Erreur réseau serveur");
             const sheetData = await response.json();
             
             inventory = []; 
             let setOnglets = new Set();
-            const ongletsAExclure = ["COMMANDES", "ADMINS"];
+            const ongletsAExclure = ["ADMINS"];
 
             for (let nomOnglet in sheetData) {
                 let nomOngletMajuscule = nomOnglet.toUpperCase();
+                
+                if (nomOngletMajuscule === "COMMANDES") {
+                    historiqueCommandes = sheetData[nomOnglet];
+                    continue; 
+                }
+
                 if (ongletsAExclure.includes(nomOngletMajuscule) || nomOngletMajuscule.includes("MISE A JOUR")) continue;
 
                 const lignes = sheetData[nomOnglet];
@@ -307,24 +290,11 @@
                 }
             }
             ongletsDisponibles = ["Tous", ...Array.from(setOnglets)];
-            localStorage.setItem('offlineInventory', JSON.stringify({ inv: inventory, tabs: ongletsDisponibles }));
-            setNetworkUI(true);
             genererOnglets();
             renderTable();
 
         } catch (error) {
-            setNetworkUI(false);
-            const cached = localStorage.getItem('offlineInventory');
-            if (cached) {
-                let savedData = JSON.parse(cached);
-                inventory = savedData.inv;
-                ongletsDisponibles = savedData.tabs;
-                genererOnglets();
-                renderTable();
-                document.getElementById('tableBody').insertAdjacentHTML('afterbegin', "<tr><td colspan='4' style='text-align:center; background:var(--warning); color:white; font-weight:bold;'>⚠️ Mode Hors-Ligne : Données en mémoire.</td></tr>");
-            } else {
-                document.getElementById('tableBody').innerHTML = "<tr><td colspan='4' style='color:var(--danger); text-align:center;'>❌ Impossible de charger les données (Pas de réseau).</td></tr>";
-            }
+            document.getElementById('tableBody').innerHTML = "<tr><td colspan='4' style='color:var(--danger); text-align:center;'>❌ Erreur de connexion au serveur Google Sheets. Vérifiez le déploiement Web App.</td></tr>";
         }
     }
 
@@ -356,10 +326,7 @@
         let listeFiltree = (ongletActif !== "Tous") ? inventory.filter(item => item.ongletOriginal === ongletActif) : inventory;
 
         listeFiltree.forEach((item) => {
-            let statusText = "OK"; 
-            let statusClass = "bg-success";
-            let affichageDate = item.d;
-
+            let statusText = "OK"; let statusClass = "bg-success"; let affichageDate = item.d;
             if (item.d === "*") {
                 statusText = "ILLIMITÉ"; statusClass = "bg-info"; affichageDate = "<i style='color:var(--info)'>Sans péremption</i>";
             } else {
@@ -400,7 +367,6 @@
         const badge = document.getElementById('cartBadge');
         
         list.sort((a, b) => a.name.localeCompare(b.name));
-
         let totalItems = list.reduce((total, item) => total + (item.qte || 1), 0);
         badge.innerText = totalItems; badge.style.display = totalItems > 0 ? 'inline-block' : 'none';
         ul.innerHTML = list.length === 0 ? '<li style="color:var(--info); font-size:0.9em;">Appuyez sur un produit pour l\'ajouter.</li>' : '';
@@ -416,18 +382,10 @@
         const agentName = document.getElementById('agentName').value.trim();
         if(!agentName) {
             alert("⚠️ Veuillez indiquer votre nom ou votre équipage avant d'envoyer.");
-            document.getElementById('agentName').focus();
-            return;
+            document.getElementById('agentName').focus(); return;
         }
 
         const msg = document.getElementById('statusMsg');
-
-        if (!navigator.onLine) {
-            msg.innerText = "📡 Hors-ligne : Commande sauvegardée. Envoi programmé dès la reconnexion.";
-            msg.style.color = "var(--warning)";
-            return;
-        }
-
         msg.style.color = "var(--blue)";
         msg.innerText = "⏳ Envoi au registre Sheets...";
         
@@ -443,13 +401,12 @@
             msg.style.color = "var(--success)";
             msg.innerText = "✅ Commandes envoyées !";
             localStorage.removeItem('recapList'); 
-            // On vide aussi le champ input du nom par sécurité après envoi
             document.getElementById('agentName').value = "";
             loadRecap();
             setTimeout(() => { msg.innerText = ""; }, 4000);
         } else {
             msg.style.color = "var(--danger)";
-            msg.innerText = "⚠️ Erreur réseau : Commande gardée en mémoire.";
+            msg.innerText = "⚠️ Erreur lors de l'envoi réseau.";
         }
     }
     
@@ -465,8 +422,67 @@
         rows.forEach(r => r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none');
     }
 
+    function ouvrirDashboard() {
+        document.getElementById('dashboardModal').style.display = 'flex';
+        
+        if (historiqueCommandes.length <= 1) {
+            document.getElementById('totalCommandesStat').innerText = "0";
+            return;
+        }
+
+        let totalArticles = 0;
+        let compteurProduits = {};
+
+        for (let i = 1; i < historiqueCommandes.length; i++) {
+            let ligne = historiqueCommandes[i];
+            let produit = ligne[2];
+            let quantite = parseInt(ligne[3]) || 1;
+
+            if (produit) {
+                totalArticles += quantite;
+                if (compteurProduits[produit]) {
+                    compteurProduits[produit] += quantite;
+                } else {
+                    compteurProduits[produit] = quantite;
+                }
+            }
+        }
+
+        document.getElementById('totalCommandesStat').innerText = totalArticles;
+
+        let tableauTrie = Object.keys(compteurProduits).map(function(cle) {
+            return { nom: cle, total: compteurProduits[cle] };
+        });
+        tableauTrie.sort(function(a, b) { return b.total - a.total; });
+        let top5 = tableauTrie.slice(0, 5);
+
+        let labelsGraphique = top5.map(item => item.nom);
+        let donneesGraphique = top5.map(item => item.total);
+
+        const ctx = document.getElementById('topProduitsChart').getContext('2d');
+        if (monGraphique) { monGraphique.destroy(); } 
+
+        monGraphique = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labelsGraphique,
+                datasets: [{
+                    label: 'Quantité consommée (Total)',
+                    data: donneesGraphique,
+                    backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                    borderColor: 'rgba(41, 128, 185, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+    }
+
     async function login() {
-        const user = document.getElementById('adminUser').value;
+        const userEmail = document.getElementById('adminUser').value.trim();
         const pass = document.getElementById('adminPass').value;
         document.getElementById('loginMsg').innerText = "Vérification...";
         try {
@@ -474,22 +490,25 @@
             const data = await res.json(); 
             let trouve = false;
             for(let i = 1; i < data.length; i++) {
-                if(data[i][0] == user && data[i][1] == pass) { trouve = true; break; }
+                if(data[i][3] === userEmail && data[i][1] == pass) { trouve = true; break; }
             }
             if(trouve) {
                 estAdmin = true;
                 document.getElementById('bodyEl').classList.add('admin-mode');
                 document.getElementById('loginModal').style.display = 'none';
+                
                 document.getElementById('btnLogin').style.display = 'none';
                 document.getElementById('btnLogout').style.display = 'inline-block';
                 document.getElementById('btnAdminPanel').style.display = 'inline-block';
+                document.getElementById('btnDashboard').style.display = 'inline-block';
+                
                 document.getElementById('recapPanel').style.display = 'none'; 
                 
                 document.getElementById('adminUser').value = '';
                 document.getElementById('adminPass').value = '';
                 document.getElementById('loginMsg').innerText = '';
                 alert("Connecté en mode Administrateur.");
-            } else { document.getElementById('loginMsg').innerText = "Identifiants incorrects."; }
+            } else { document.getElementById('loginMsg').innerText = "Email ou mot de passe incorrect."; }
         } catch(e) { document.getElementById('loginMsg').innerText = "Erreur de connexion serveur."; }
     }
 
@@ -499,6 +518,7 @@
         document.getElementById('btnLogin').style.display = 'inline-block';
         document.getElementById('btnLogout').style.display = 'none';
         document.getElementById('btnAdminPanel').style.display = 'none';
+        document.getElementById('btnDashboard').style.display = 'none';
         document.getElementById('recapPanel').style.display = 'block'; 
         loadRecap(); 
     }
@@ -527,28 +547,31 @@
             const data = await res.json();
             ui.innerHTML = "";
             for(let i = 1; i < data.length; i++) {
-                ui.innerHTML += `<li><span>${data[i][2]} (${data[i][0]})</span> <button onclick="delAdmin('${data[i][0]}')">X</button></li>`;
+                ui.innerHTML += `<li><span>${data[i][2]} (${data[i][3]})</span> <button onclick="delAdmin('${data[i][3]}')">X</button></li>`;
             }
         } catch(e) { ui.innerHTML = "<span style='color:var(--danger);'>Erreur de lecture (Réseau ?).</span>"; }
     }
 
     async function addAdmin() {
-        const u = document.getElementById('newAdminUser').value;
-        const p = document.getElementById('newAdminPass').value;
         const n = document.getElementById('newAdminNom').value;
-        if(u && p) {
-            document.getElementById('newAdminUser').value = ""; document.getElementById('newAdminPass').value = ""; document.getElementById('newAdminNom').value = "";
+        const e = document.getElementById('newAdminEmail').value;
+        const p = document.getElementById('newAdminPass').value;
+        
+        if(e && p && n) {
+            document.getElementById('newAdminNom').value = ""; document.getElementById('newAdminEmail').value = ""; document.getElementById('newAdminPass').value = "";
             try {
-                await fetch(`${WEB_APP_URL}?action=add_admin&user=${encodeURIComponent(u)}&pass=${encodeURIComponent(p)}&nom=${encodeURIComponent(n)}`, { mode: 'no-cors' });
+                await fetch(`${WEB_APP_URL}?action=add_admin&user=${encodeURIComponent(e)}&pass=${encodeURIComponent(p)}&nom=${encodeURIComponent(n)}&email=${encodeURIComponent(e)}`, { mode: 'no-cors' });
                 setTimeout(ouvrirModalAdmin, 1000); 
-            } catch(e) { alert("Erreur d'envoi."); }
+            } catch(error) { alert("Erreur d'envoi."); }
+        } else {
+            alert("Veuillez remplir tous les champs.");
         }
     }
 
-    async function delAdmin(user) {
-        if(confirm(`Supprimer l'accès pour ${user} ?`)) {
+    async function delAdmin(userEmail) {
+        if(confirm(`Supprimer l'accès pour ${userEmail} ?`)) {
             try {
-                await fetch(`${WEB_APP_URL}?action=del_admin&user=${encodeURIComponent(user)}`, { mode: 'no-cors' });
+                await fetch(`${WEB_APP_URL}?action=del_admin&user=${encodeURIComponent(userEmail)}`, { mode: 'no-cors' });
                 setTimeout(ouvrirModalAdmin, 1000); 
             } catch(e) { alert("Erreur d'envoi."); }
         }
@@ -559,6 +582,7 @@
             try {
                 await fetch(`${WEB_APP_URL}?action=reset_commandes`, { mode: 'no-cors' });
                 alert("Les commandes ont été réinitialisées.");
+                historiqueCommandes = [];
             } catch(e) { alert("Impossible d'atteindre le serveur."); }
         }
     }
