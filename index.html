@@ -115,7 +115,8 @@
         <h1>🚑 Inventaire VSAV</h1>
         
         <div class="search-container">
-            <input type="text" id="searchInput" class="search-bar" onkeyup="filterTable()" placeholder="🔍 Rechercher (nom ou scannez le code)..." autocomplete="off">
+            <!-- Empêche l'autocomplétion intempestive du 8860 -->
+            <input type="text" id="searchInput" class="search-bar" onkeyup="filterTable()" placeholder="🔍 Rechercher (nom ou scannez le code)..." readonly onfocus="this.removeAttribute('readonly');">
             <button class="btn-scan" onclick="startScanner()" title="Scanner un code-barres">📷</button>
         </div>
 
